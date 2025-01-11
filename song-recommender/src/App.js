@@ -1,13 +1,58 @@
 import './App.css';
 import { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
+import { FaThumbsUp, FaThumbsDown, FaCircleQuestion} from 'react-icons/fa6';
+import {ClipLoader} from 'react-spinners';
 
 const SongSwiper = () => {
   const location = useLocation();
   const song = location.state?.song || {};
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setLoading(false);
+    }, 500)
+  })
+
+  if(loading){
+    return(
+      <div className='background' style={{display: 'flex', alignItems: 'center', flexDirection: 'column', marginTop: '50%'}}>
+        <ClipLoader color={'white'} size={50}/>
+        <p style={{fontSize: '1.25rem'}}>Fetching recommendations...</p>
+        <p style={{position: 'fixed', bottom: '0'}}>Created by <a href='http://www.lucasrobert.com' rel='noreferrer' target='_blank'>Lucas Robert</a><br/>Powered by Spotify Developer APIs</p>
+      </div>
+    );
+  }
+
+  
+
   return (
-    <div>
-      <h1>{song.name}</h1>
+    <div className='background'>
+      <div style={{display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', height: '100vh'}}>
+        <div className='swiper-card' style={{marginTop: '-3rem'}}>
+          <p style={{fontSize: '1.75rem', fontWeight: 'bold', color: 'white'}}>{song.name}</p>
+          <p style={{fontSize: '1.25rem'}}>{song.artists.map((artist) => artist.name).join(', ')}</p>
+          <img src={song.album.images[0]?.url} alt='Album Cover' style={{maxWidth: '90%', maxHeight: '90%', paddingBottom: '1.5rem'}}/>
+        </div>
+        <div className='info-card'>
+          <p style={{fontSize: '2rem', fontWeight: 'bold', marginTop: '0'}}>99%</p>
+          <p style={{marginTop: '-1.5rem'}}>Of people who liked <strong>{song.name}</strong> like new song</p>
+          <div style={{display: 'flex', flexDirection: 'row', justifyContent: 'space-evenly'}}>
+            <div className='button-div'>
+              <FaThumbsDown className='icon' color='black' size={30}/>
+            </div>
+            <div className='button-div'>
+              <FaCircleQuestion color='black' size={30}/>
+            </div>
+            <div className='button-div'>
+              <FaThumbsUp color='black' size={30}/>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <p style={{position: 'fixed', bottom: '0'}}>Created by <a href='http://www.lucasrobert.com' rel='noreferrer' target='_blank'>Lucas Robert</a><br/>Powered by Spotify Developer APIs</p>
     </div>
   )
 };
@@ -47,7 +92,7 @@ const Home = () => {
       
     }
     handleSearch();
-  }, [debouncedTerm])
+  }, [debouncedTerm, searchTerm])
 
   const handleInputChange = (e) => {
     setSearchTerm(e.target.value);

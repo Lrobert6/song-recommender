@@ -9,6 +9,35 @@
   color: #b3b3b3;
 }
 
+.swiper-card {
+  background-color: #2f2f2f;
+  border-radius: 20px;
+  padding: .5rem;
+}
+
+.info-card {
+  background-color: #2f2f2f;
+  border-radius: 20px;
+  padding: 1rem;
+  margin-top: 2rem;
+  width: 80%;
+  padding-top: 0;
+}
+
+.button-div{
+  background-color: #b3b3b3;
+  width: 10%;
+  height: 3rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+}
+
+.button-div:hover{
+  background-color: #5a5959;
+}
+
 .card { 
   display: flex;
   flex-direction: column;
