@@ -2,6 +2,7 @@ const express = require("express");
 const axios = require("axios");
 const bodyParser = require("body-parser");
 const cors = require("cors");
+const { createClient } = require("@supabase/supabase-js");
 require("dotenv").config();
 
 const app = express();
@@ -18,6 +19,12 @@ const CLIENT_SECRET = process.env.CLIENT_SECRET;
 let accessToken = null;
 let tokenExpiresAt = null;
 
+// Supabase Configuration
+const supabaseUrl = process.env.REACT_APP_API_URL;
+const supabaseKey = process.env.REACT_APP_API_KEY;
+const supabase = createClient(supabaseUrl, supabaseKey);
+
+// Function to get Spotify Access Token
 async function getAccessToken() {
   if (accessToken && tokenExpiresAt > Date.now()) {
     return accessToken;
@@ -73,6 +80,115 @@ app.get("/api/search", async (req, res) => {
   }
 });
 
+// Route to get track information
+app.get("/api/get-track", async (req, res) => {
+  const query = req.query.q;
+  if (!query) {
+    return res.status(400).send("Query parameter 'q' is required");
+  }
+
+  try {
+    const token = await getAccessToken();
+    const response = await axios.get(
+      `https://api.spotify.com/v1/tracks/${encodeURIComponent(query)}`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    res.json(response.data);
+  } catch (error) {
+    console.error("Error searching Spotify:", error.response?.data || error);
+    res.status(500).send("Failed to search Spotify");
+  }
+});
+
+// Route to log song interactions
+app.post("/api/log-action", async (req, res) => {
+  const { baseSongID, relatedSongID, action } = req.body;
+
+  // Log the request body to debug
+  console.log("Request body:", req.body);
+
+  if (!baseSongID || !relatedSongID || !action) {
+    console.error("Missing parameters:", { baseSongID, relatedSongID, action });
+    return res.status(400).send("Missing parameters");
+  }
+
+  try {
+    const likeIncrement = action === "like" ? 1 : 0;
+    const dislikeIncrement = action === "dislike" ? 1 : 0;
+    const passIncrement = action === "pass" ? 1 : 0;
+
+    const { data, error } = await supabase
+      .from("song_interactions")
+      .upsert(
+        {
+          base_song_id: baseSongID,
+          related_song_id: relatedSongID,
+          like_count: likeIncrement,
+          dislike_count: dislikeIncrement,
+          pass_count: passIncrement,
+          total_shown_count: 1,
+        },
+        { onConflict: ["base_song_id", "related_song_id"] }
+      );
+
+    if (error) {
+      throw error;
+    }
+
+    res.status(200).send("Action logged");
+  } catch (error) {
+    console.error("Error logging action:", error.message);
+    res.status(500).send("Failed to log action");
+  }
+});
+
+
+// Route to get recommendations
+app.get('/api/recommendations', async (req, res) => {
+  const { songId } = req.query;
+
+  if (!songId) {
+    console.error('No songId provided');
+    return res.status(400).json({ error: 'songId is required' }); // JSON response
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from("song_interactions")
+      .select("related_song_id, like_count, total_shown_count")
+      .eq("base_song_id", songId)
+      .limit(10);
+
+    if (error) {
+      console.error('Supabase error:', error.message);
+      return res.status(500).json({ error: 'Failed to fetch recommendations' });
+    }
+
+    console.log('Supabase data:', data);
+    console.log('Supabase error:', error);
+
+    if (data.length === 0) {
+      console.log('No recommendations found');
+      return res.json([]); // Send empty JSON array
+    }
+
+    console.log('Recommendations:', data);
+    res.setHeader("Content-Type", "application/json");
+    res.json(data); // Send data as JSON
+  } catch (error) {
+    console.error('Error fetching recommendations:', error.message);
+    res.status(500).json({ error: 'Internal server error' }); // JSON response
+  }
+});
+
+
+
+// Start the server
 app.listen(PORT, () => {
   console.log(`Backend server running at http://localhost:${PORT}`);
 });
