@@ -134,19 +134,59 @@ app.post("/api/log-action", async (req, res) => {
 });
 
 // Route to get recommendations
+// app.get('/api/recommendations', async (req, res) => {
+//   const { songId } = req.query;
+
+//   if (!songId) {
+//     console.error('No songId provided');
+//     return res.status(400).json({ error: 'songId is required' }); // JSON response
+//   }
+
+//   try {
+//     const { data, error } = await supabase
+//       .from("song_interactions")
+//       .select("related_song_id, like_count, total_shown_count")
+//       .eq("base_song_id", songId)
+//       .order('like_percentage', {ascending: false})
+//       .limit(10);
+//       // .filter("total_shown_count", "gt", 0);
+
+//     if (error) {
+//       console.error('Supabase error:', error.message);
+//       return res.status(500).json({ error: 'Failed to fetch recommendations' });
+//     }
+
+//     console.log('Supabase data:', data);
+//     console.log('Supabase error:', error);
+
+//     if (data.length === 0) {
+//       console.log('No recommendations found');
+//       return res.json([]); // Send empty JSON array
+//     }
+
+//     console.log('Recommendations:', data);
+//     res.setHeader("Content-Type", "application/json");
+//     res.json(data); // Send data as JSON
+//   } catch (error) {
+//     console.error('Error fetching recommendations:', error.message);
+//     res.status(500).json({ error: 'Internal server error' }); // JSON response
+//   }
+// });
+
 app.get('/api/recommendations', async (req, res) => {
   const { songId } = req.query;
 
   if (!songId) {
-    console.error('No songId provided');
-    return res.status(400).json({ error: 'songId is required' }); // JSON response
+    return res.status(400).json({ error: 'songId is required' });
   }
 
   try {
-    const { data, error } = await supabase
-      .from("song_interactions")
-      .select("related_song_id, like_count, total_shown_count")
-      .eq("base_song_id", songId)
+    // Step 1: Check if recommendations exist in the database
+    let { data: recommendations, error } = await supabase
+      .from('song_interactions')
+      .select('related_song_id, like_count, total_shown_count')
+      .eq('base_song_id', songId)
+      .order('like_percentage', { ascending: false })
       .limit(10);
 
     if (error) {
@@ -154,23 +194,60 @@ app.get('/api/recommendations', async (req, res) => {
       return res.status(500).json({ error: 'Failed to fetch recommendations' });
     }
 
-    console.log('Supabase data:', data);
-    console.log('Supabase error:', error);
+    // Step 2: If no recommendations exist, fetch them using Spotify's Top Tracks API
+    if (!recommendations || recommendations.length === 0) {
+      console.log(`No recommendations found for songId ${songId}. Fetching using Top Tracks API...`);
 
-    if (data.length === 0) {
-      console.log('No recommendations found');
-      return res.json([]); // Send empty JSON array
+      const token = await getAccessToken();
+
+      // Get the song's artist(s)
+      const trackResponse = await axios.get(
+        `https://api.spotify.com/v1/tracks/${encodeURIComponent(songId)}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      const primaryArtistId = trackResponse.data.artists[0].id;
+
+      // Fetch the artist's top tracks
+      const topTracksResponse = await axios.get(
+        `https://api.spotify.com/v1/artists/${primaryArtistId}/top-tracks?market=US`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      const topTracks = topTracksResponse.data.tracks.map((track) => ({
+        base_song_id: songId,
+        related_song_id: track.id,
+        like_count: 0,
+        dislike_count: 0,
+        pass_count: 0,
+        total_shown_count: 0,
+      }));
+
+      // Step 3: Insert Top Tracks into the database
+      const { error: insertError } = await supabase
+        .from('song_interactions')
+        .insert(topTracks);
+
+      if (insertError) {
+        console.error('Error inserting recommendations into Supabase:', insertError.message);
+        return res.status(500).json({ error: 'Failed to store recommendations' });
+      }
+
+      recommendations = topTracks; // Use the newly generated recommendations
     }
 
-    console.log('Recommendations:', data);
-    res.setHeader("Content-Type", "application/json");
-    res.json(data); // Send data as JSON
+    // Step 4: Return the recommendations to the user
+    res.setHeader('Content-Type', 'application/json');
+    res.json(recommendations);
   } catch (error) {
     console.error('Error fetching recommendations:', error.message);
-    res.status(500).json({ error: 'Internal server error' }); // JSON response
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
-
 
 
 // Start the server

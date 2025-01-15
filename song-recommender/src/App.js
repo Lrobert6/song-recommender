@@ -7,71 +7,85 @@ import {ClipLoader} from 'react-spinners';
 const SongSwiper = () => {
   const location = useLocation();
   const song = location.state?.song || {};
+  const [songTitle, setSongTitle] = useState(song.name);
+  const [currentSong, setCurrentSong] = useState(song);
   const [loading, setLoading] = useState(true);
   const [recommendations, setRecommendations] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [trackInfo, setTrackInfo] = useState([]);
   const currentRecommendation = recommendations[currentIndex];
   
-  const fetchRecommendations = async () => {
+  const fetchRecommendations = async (songId) => {
     try {
-      const response = await fetch(`/api/recommendations?songId=${song.id}`);
-      console.log(response);
-      console.log(response.headers.get("content-type"));
+      setLoading(true);
+      
+      const songDetailsResponse = await fetch(`/api/get-track?q=${songId}`);
+      if(!songDetailsResponse){
+        throw new Error(`Failed to fetch song details: ${songDetailsResponse.status}`);
+      }
+      const songDetails = await songDetailsResponse.json();
+      setSongTitle(songDetails.name);
+
+
+      const response = await fetch(`/api/recommendations?songId=${songId}`);
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      const contentType = response.headers.get("content-type");
-      if (!contentType || !contentType.includes("application/json")) {
-        throw new Error("Response is not JSON");
-      }
       const data = await response.json();
+      console.log('Recommendation data: ', data);
+      if (data.length === 0) {
+        console.log("No recommendations found.");
+        setRecommendations([]);
+        setCurrentIndex(0);
+        setLoading(false);
+        return;
+      }
       setRecommendations(data);
+      setCurrentIndex(0);
       setTimeout(() => {
         setLoading(false);
-      }, 500)
+      }, 500);
     } catch (error) {
       console.error("Error fetching recommendations:", error);
+      setRecommendations([]);
+      setCurrentIndex(0);
       setLoading(false);
     }
   };
   
-    const getTrackInfo = async () => {
-      if (!currentRecommendation?.related_song_id) return;
   
-      try {
-        const response = await fetch(
-          `/api/get-track?q=${encodeURIComponent(currentRecommendation.related_song_id)}`
-        );
-        if (!response.ok) {
-          throw new Error("Failed to fetch track information");
-        }
-  
-        const data = await response.json();
-        console.log("Track Information:", data); 
-        setTrackInfo(data); 
-      } catch (error) {
-        console.error("Error fetching track information:", error);
+  const getTrackInfo = async () => {
+    if (!currentRecommendation?.related_song_id) return;
+
+    try {
+      const response = await fetch(
+        `/api/get-track?q=${encodeURIComponent(currentRecommendation.related_song_id)}`
+      );
+      if (!response.ok) {
+        throw new Error("Failed to fetch track information");
       }
-    };
+
+      const data = await response.json();
+      console.log("Track Information:", data);
+      setTrackInfo(data);
+    } catch (error) {
+      console.error("Error fetching track information:", error);
+    }
+  };
 
   useEffect(() => {
     getTrackInfo();
-  }, [currentRecommendation])
-
-  console.log('Current recommendation: ',currentRecommendation);
+  }, [currentRecommendation]);
 
   const handleAction = async (action) => {
     if (!currentRecommendation) return;
-  
+    console.log('User ', action, ' song ', currentRecommendation.related_song_id, ' from  song ', currentSong.id);
     try {
       const payload = {
-        baseSongID: song.id,
+        baseSongID: currentSong.id,
         relatedSongID: currentRecommendation.related_song_id,
         action,
       };
-  
-      console.log("Payload sent to /api/log-action:", payload);
   
       const response = await fetch('http://localhost:5000/api/log-action', {
         method: 'POST',
@@ -81,9 +95,16 @@ const SongSwiper = () => {
   
       if (!response.ok) throw new Error("Failed to log action");
   
-      console.log(`${action} action logged successfully`);
+      if (action === 'like') {
+        setCurrentSong({
+        id: currentRecommendation.related_song_id,
+        name: trackInfo.name,
+      });
+        console.log('Sending ', currentRecommendation.related_song_id)
+        fetchRecommendations(currentRecommendation.related_song_id);
+        return;
+      }
   
-      // Move to the next recommendation
       if (currentIndex + 1 < recommendations.length) {
         setCurrentIndex(currentIndex + 1);
       } else {
@@ -93,14 +114,11 @@ const SongSwiper = () => {
       console.error("Error logging action:", error);
     }
   };
+  
 
   useEffect(() => {
-    fetchRecommendations();
+    fetchRecommendations(song.id);
   }, [song.id]);
-
-  useEffect(() => {
-    getTrackInfo();
-  }, [currentIndex]);
 
   if (loading) {
     return (
@@ -125,8 +143,8 @@ const SongSwiper = () => {
           <img src={trackInfo?.album?.images?.[0]?.url || ''} alt='Album Cover' style={{ maxWidth: '90%', maxHeight: '90%', paddingBottom: '1.5rem' }} />
         </div>
         <div className='info-card'>
-          <p style={{ fontSize: '2rem', fontWeight: 'bold', marginTop: '0' }}>{currentRecommendation?.like_count / currentRecommendation?.total_shown_count * 100}%</p>
-          <p style={{ marginTop: '-1.5rem' }}>Of people who liked <strong>{song.name}</strong> like <strong>{trackInfo.name}</strong></p>
+          <p style={{ fontSize: '2rem', fontWeight: 'bold', marginTop: '0' }}>{Math.round(currentRecommendation?.like_count / currentRecommendation?.total_shown_count * 100) || 100}%</p>
+          <p style={{ marginTop: '-1.5rem' }}>Of people who liked <strong>{songTitle}</strong> like <strong>{trackInfo.name}</strong></p>
           <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-evenly' }}>
             <div className='button-div' onClick={() => handleAction('dislike')}>
               <FaThumbsDown className='icon' color='black' size={30} />
@@ -135,7 +153,7 @@ const SongSwiper = () => {
               <FaCircleQuestion color='black' size={30} />
             </div>
             <div className='button-div' onClick={() => handleAction('like')}>
-              <FaThumbsUp color='black' size={30} />
+              <FaThumbsUp className='icon' color='black' size={30} />
             </div>
           </div>
         </div>
@@ -144,6 +162,7 @@ const SongSwiper = () => {
     </div>
   );
 };
+
 
 
 const Home = () => {
