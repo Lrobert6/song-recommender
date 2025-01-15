@@ -109,44 +109,29 @@ app.get("/api/get-track", async (req, res) => {
 app.post("/api/log-action", async (req, res) => {
   const { baseSongID, relatedSongID, action } = req.body;
 
-  // Log the request body to debug
-  console.log("Request body:", req.body);
+  console.log("Request body:", { baseSongID, relatedSongID, action });
 
   if (!baseSongID || !relatedSongID || !action) {
-    console.error("Missing parameters:", { baseSongID, relatedSongID, action });
     return res.status(400).send("Missing parameters");
   }
 
   try {
-    const likeIncrement = action === "like" ? 1 : 0;
-    const dislikeIncrement = action === "dislike" ? 1 : 0;
-    const passIncrement = action === "pass" ? 1 : 0;
-
-    const { data, error } = await supabase
-      .from("song_interactions")
-      .upsert(
-        {
-          base_song_id: baseSongID,
-          related_song_id: relatedSongID,
-          like_count: likeIncrement,
-          dislike_count: dislikeIncrement,
-          pass_count: passIncrement,
-          total_shown_count: 1,
-        },
-        { onConflict: ["base_song_id", "related_song_id"] }
-      );
+    const { data, error } = await supabase.rpc("update_song_interaction", {
+      base_song_id_param: baseSongID,
+      related_song_id_param: relatedSongID,
+      action_type: action,
+    });
 
     if (error) {
       throw error;
     }
 
-    res.status(200).send("Action logged");
+    return res.status(200).send("Action logged");
   } catch (error) {
     console.error("Error logging action:", error.message);
     res.status(500).send("Failed to log action");
   }
 });
-
 
 // Route to get recommendations
 app.get('/api/recommendations', async (req, res) => {

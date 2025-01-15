@@ -11,10 +11,8 @@ const SongSwiper = () => {
   const [recommendations, setRecommendations] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [trackInfo, setTrackInfo] = useState([]);
-  const currentRecommendation = recommendations[0];
+  const currentRecommendation = recommendations[currentIndex];
   
-  
-
   const fetchRecommendations = async () => {
     try {
       const response = await fetch(`/api/recommendations?songId=${song.id}`);
@@ -29,17 +27,17 @@ const SongSwiper = () => {
       }
       const data = await response.json();
       setRecommendations(data);
-      setLoading(false);
+      setTimeout(() => {
+        setLoading(false);
+      }, 500)
     } catch (error) {
       console.error("Error fetching recommendations:", error);
       setLoading(false);
     }
   };
   
-  
-  useEffect(() => {
     const getTrackInfo = async () => {
-      if (!currentRecommendation?.related_song_id) return; // Ensure related_song_id exists
+      if (!currentRecommendation?.related_song_id) return;
   
       try {
         const response = await fetch(
@@ -50,26 +48,27 @@ const SongSwiper = () => {
         }
   
         const data = await response.json();
-        console.log("Track Information:", data); // Debugging
-        setTrackInfo(data); // Assuming you have a state variable `trackInfo`
+        console.log("Track Information:", data); 
+        setTrackInfo(data); 
       } catch (error) {
         console.error("Error fetching track information:", error);
       }
     };
-  
-    getTrackInfo();
-  }, [currentRecommendation]);
 
-  console.log(currentRecommendation);
+  useEffect(() => {
+    getTrackInfo();
+  }, [currentRecommendation])
+
+  console.log('Current recommendation: ',currentRecommendation);
 
   const handleAction = async (action) => {
     if (!currentRecommendation) return;
   
     try {
       const payload = {
-        baseSongID: song.id, // Base song ID
-        relatedSongID: currentRecommendation.related_song_id, // Related song ID
-        action, // Action: "like", "dislike", or "pass"
+        baseSongID: song.id,
+        relatedSongID: currentRecommendation.related_song_id,
+        action,
       };
   
       console.log("Payload sent to /api/log-action:", payload);
@@ -94,11 +93,14 @@ const SongSwiper = () => {
       console.error("Error logging action:", error);
     }
   };
-  
 
   useEffect(() => {
     fetchRecommendations();
   }, [song.id]);
+
+  useEffect(() => {
+    getTrackInfo();
+  }, [currentIndex]);
 
   if (loading) {
     return (
