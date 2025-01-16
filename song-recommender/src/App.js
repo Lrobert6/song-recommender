@@ -216,7 +216,7 @@ const Home = () => {
 
   return (
     <div className="background">
-      <div style={{marginTop: '17.5%', display: 'flex', flexDirection: 'column', transition: 'transform 0.3s ease', transform: searchTerm ? 'translateY(-17.5rem)' : 'translateY(0)'}}>
+      <div style={{marginTop: '17.5%', display: 'flex', flexDirection: 'column', transition: 'transform 0.3s ease', transform: searchTerm ? 'translateY(-17.5vh)' : 'translateY(0)'}}>
         <label style={{fontSize: '2rem', marginBottom: '0.5rem', opacity: searchTerm ? '0%' : '100%'}}>Search for a Song</label>
         <input type='text' autoFocus value={searchTerm}  onChange={handleInputChange} style={{backgroundColor: '#434343', border: 'none', borderRadius: '20px', fontSize: '3rem', color: 'white', padding: '10px', width: '50rem'}}/>
         {songs.length > 0 && (
