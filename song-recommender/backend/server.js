@@ -3,7 +3,8 @@ const axios = require("axios");
 const bodyParser = require("body-parser");
 const cors = require("cors");
 const { createClient } = require("@supabase/supabase-js");
-require("dotenv").config();
+require('dotenv').config({ path: './backend/.env' });
+
 
 const app = express();
 const PORT = process.env.PORT || 5000;

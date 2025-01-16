@@ -13,8 +13,8 @@
     "react-spinners": "^0.15.0"
   },
   "scripts": {
-    "start": "node backend/server.js",
-    "build": "npm install --prefix backend && npm run build --prefix backend",
+    "start": "concurrently \"npm start --prefix backend\" \"react-scripts start\"",
+    "build": "cd backend && npm install && cd ../ && react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
   },
@@ -36,5 +36,8 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
   }
 }
