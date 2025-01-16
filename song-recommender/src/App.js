@@ -75,7 +75,7 @@ const SongSwiper = () => {
 
   useEffect(() => {
     getTrackInfo();
-  }, [currentRecommendation, getTrackInfo]);
+  }, [currentRecommendation]);
 
   const handleAction = async (action) => {
     if (!currentRecommendation) return;
@@ -122,7 +122,7 @@ const SongSwiper = () => {
 
   if (loading) {
     return (
-      <div className='background' style={{ display: 'flex', alignItems: 'center', flexDirection: 'column', marginTop: '50%' }}>
+      <div className='background' style={{ display: 'flex', alignItems: 'center', flexDirection: 'column', marginTop: '50vh' }}>
         <ClipLoader color={'white'} size={50} />
         <p style={{ fontSize: '1.25rem' }}>Fetching recommendations...</p>
         <p style={{ position: 'fixed', bottom: '0' }}>Created by <a href='http://www.lucasrobert.com' rel='noreferrer' target='_blank'>Lucas Robert</a><br />Powered by Spotify Developer APIs</p>
