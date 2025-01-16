@@ -250,6 +250,16 @@ app.get('/api/recommendations', async (req, res) => {
 });
 
 
+const path = require("path");
+
+// Serve static files from the React app
+app.use(express.static(path.join(__dirname, "build")));
+
+// Catch-all route to serve the React app
+app.get("*", (req, res) => {
+  res.sendFile(path.join(__dirname, "build", "index.html"));
+});
+
 // Start the server
 app.listen(PORT, () => {
   console.log(`Backend server running at http://localhost:${PORT}`);
