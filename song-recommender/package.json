@@ -14,7 +14,7 @@
   },
   "scripts": {
     "start": "node backend/server.js",
-    "build": "cd backend && npm install && cd ../ && npm run build",
+    "build": "npm install --prefix backend && npm run build --prefix backend",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
   },
