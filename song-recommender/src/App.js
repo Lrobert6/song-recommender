@@ -75,7 +75,7 @@ const SongSwiper = () => {
 
   useEffect(() => {
     getTrackInfo();
-  }, [currentRecommendation]);
+  }, [currentRecommendation, getTrackInfo]);
 
   const handleAction = async (action) => {
     if (!currentRecommendation) return;
