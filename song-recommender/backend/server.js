@@ -249,6 +249,15 @@ app.get('/api/recommendations', async (req, res) => {
   }
 });
 
+const path = require('path');
+
+// Serve React app static files
+app.use(express.static(path.join(__dirname, 'build')));
+
+// Serve the React app for any unknown routes
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'build', 'index.html'));
+});
 
 // Start the server
 app.listen(PORT, () => {
