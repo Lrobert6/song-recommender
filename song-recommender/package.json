@@ -13,8 +13,8 @@
     "react-spinners": "^0.15.0"
   },
   "scripts": {
-    "start": "concurrently \"npm start --prefix backend\" \"react-scripts start\"",
-    "build": "cd backend && npm install && cd ../ && react-scripts build",
+    "start": "node backend/server.js",
+    "build": "cd backend && npm install && cd ../ && npm run build --prefix frontend",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
   },
