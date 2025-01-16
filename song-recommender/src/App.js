@@ -87,7 +87,7 @@ const SongSwiper = () => {
         action,
       };
   
-      const response = await fetch('http://localhost:5000/api/log-action', {
+      const response = await fetch('/api/log-action', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -187,7 +187,7 @@ const Home = () => {
         return;
       }
       try {
-        const response = await fetch(`http://localhost:5000/api/search?q=${encodeURIComponent(searchTerm)}`);
+        const response = await fetch(`/api/search?q=${encodeURIComponent(searchTerm)}`);
         if (!response.ok) {
           throw new Error("Failed to fetch songs");
         }
